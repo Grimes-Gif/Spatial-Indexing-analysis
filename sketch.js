@@ -1,4 +1,3 @@
-var point_diameter = 10
 let point_list = []
 let qt = null
 
@@ -11,11 +10,9 @@ function draw() {
   background(220);
 
   point_list.forEach((point) => {
-      let c = color('green')
-      fill(c)
-      circle(point.x, point.y, point_diameter)
-    }
-  )
+      point.draw()
+      point.update()
+  })
 
   showTree(qt)
 }

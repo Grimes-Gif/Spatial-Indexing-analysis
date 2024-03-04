@@ -2,6 +2,17 @@ class point {
     constructor(x,y) {
         this.x = x
         this.y = y
+        this.speed = .1
+        this.diameter = 10
+    }
+
+    update() {
+
+    }
+
+    draw() {
+        fill(color('green'))
+        circle(this.x, this.y, this.diameter)
     }
 }
 
@@ -14,29 +25,39 @@ class region {
         this.h = h
     }
 
-    setUpperLeft() {
+    cellUL() {
         return new region(this.x, this.y, this.w/2, this.h/2)
     }
 
-    setUpperRight() {
+    cellUR() {
         return new region(this.x + this.w/2, this.y, this.w/2, this.h/2)
     }
 
-    setLowerLeft() {
+    cellBL() {
         return new region(this.x, this.y + this.h/2, this.w/2, this.h/2)
     }
 
-    setLowerRight() {
+    cellBR() {
         return new region(this.x + this.w/2, this.y + this.h/2, 
             this.w/2, this.h/2)
     }
 
-    contains(point) {
+    containsPoint(point) {
         if (point.x > this.x && point.x < this.x + this.w) {
             if (point.y > this.y && point.y < this.y + this.h) {
                 return true
             }
         }
+        return false
+    }
+
+    containsRegion(region) {
+        if (this.x < region.x + region.w && region.x < this.x + this.w) { //check for horizontal overlap
+            if (this.y < region.y + region.h && region.y < this.y + this.h) { //check for vertical overlap
+                return true
+            }
+        }
+
         return false
     }
 
@@ -59,7 +80,7 @@ class QTree {
     insert(point) {
         
         //check if point is in bounds of this cell, if not check another cell
-        if (!this.boundary.contains(point)) {
+        if (!this.boundary.containsPoint(point)) {
             return
         }
 
@@ -73,32 +94,60 @@ class QTree {
             } 
             this.upLeft.insert(point)
             this.upRight.insert(point)
-            this.downLeft.insert(point)
-            this.downRight.insert(point)
+            this.botLeft.insert(point)
+            this.botRight.insert(point)
         }
 
         return point
     }
     
     subdivide(point_list) {
-        this.upLeft = new QTree(this.boundary.setUpperLeft(), this.tolerance)
-        this.upRight = new QTree(this.boundary.setUpperRight(), this.tolerance)
-        this.downLeft = new QTree(this.boundary.setLowerLeft(), this.tolerance)
-        this.downRight = new QTree(this.boundary.setLowerRight(), this.tolerance)
+        this.upLeft = new QTree(this.boundary.cellUL(), this.tolerance)
+        this.upRight = new QTree(this.boundary.cellUR(), this.tolerance)
+        this.botLeft = new QTree(this.boundary.cellBL(), this.tolerance)
+        this.botRight = new QTree(this.boundary.cellBR(), this.tolerance)
 
         point_list.forEach((point) => { //distribute points from parent cell to children
-            if (this.upLeft.boundary.contains(point)) {
+            if (this.upLeft.boundary.containsPoint(point)) {
                 this.upLeft.points.push(point)
-            } else if (this.upRight.boundary.contains(point)) {
+            } else if (this.upRight.boundary.containsPoint(point)) {
                 this.upRight.points.push(point)
-            } else if (this.downLeft.boundary.contains(point)) {
-                this.downLeft.points.push(point)
+            } else if (this.botLeft.boundary.containsPoint(point)) {
+                this.botLeft.points.push(point)
             } else {
-                this.downRight.points.push(point)
+                this.botRight.points.push(point)
             }
         })
 
+        this.points = []
     }
+
+
+    queryRegion(area) {
+        let inRegion = []
+        if (!this.boundary.containsRegion(area)) {
+            return inRegion
+        } //termiante if not in region 
+
+        this.points.forEach((point) => {
+            if (area.containsPoint(point)) {
+                inRegion.push(point)
+            }
+        }) //push points, should only execute on leaf nodes
+
+        if (this.upLeft == null) {
+            return inRegion
+        } //recurse from any starting node, to leaf nodes 
+
+        inRegion.concat(this.upLeft.queryRegion(area))
+        inRegion.concat(this.upRight.queryRegion(area))
+        inRegion.concat(this.botLeft.queryRegion(area))
+        inRegion.concat(this.botRight.queryRegion(area))
+
+        return inRegion
+    }
+
+    
 }
 
 
@@ -111,7 +160,7 @@ function showTree(root) {
     root.boundary.draw()
     showTree(root.upLeft)
     showTree(root.upRight)
-    showTree(root.downLeft)
-    showTree(root.downRight)
+    showTree(root.botLeft)
+    showTree(root.botRight)
 
 }
