@@ -1,9 +1,11 @@
 class point {
+
     constructor(x,y) {
         this.x = x
         this.y = y
         this.speed = .1
         this.diameter = 10
+        this.isSelected = false
     }
 
     update() {
@@ -11,13 +13,19 @@ class point {
     }
 
     draw() {
-        fill(color('green'))
+        if (this.isSelected) {
+            stroke('blue')
+            fill(color('blue'))
+        } else {
+            stroke('green')
+            fill(color('green'))
+        }
         circle(this.x, this.y, this.diameter)
     }
 }
 
 
-class region {
+class AABB {
     constructor(x,y,w,h) {
         this.x = x
         this.y = y
@@ -26,19 +34,19 @@ class region {
     }
 
     cellUL() {
-        return new region(this.x, this.y, this.w/2, this.h/2)
+        return new AABB(this.x, this.y, this.w/2, this.h/2)
     }
 
     cellUR() {
-        return new region(this.x + this.w/2, this.y, this.w/2, this.h/2)
+        return new AABB(this.x + this.w/2, this.y, this.w/2, this.h/2)
     }
 
     cellBL() {
-        return new region(this.x, this.y + this.h/2, this.w/2, this.h/2)
+        return new AABB(this.x, this.y + this.h/2, this.w/2, this.h/2)
     }
 
     cellBR() {
-        return new region(this.x + this.w/2, this.y + this.h/2, 
+        return new AABB(this.x + this.w/2, this.y + this.h/2, 
             this.w/2, this.h/2)
     }
 
@@ -51,9 +59,9 @@ class region {
         return false
     }
 
-    containsRegion(region) {
-        if (this.x < region.x + region.w && region.x < this.x + this.w) { //check for horizontal overlap
-            if (this.y < region.y + region.h && region.y < this.y + this.h) { //check for vertical overlap
+    containsAABB(aabb) {
+        if (this.x < aabb.x + aabb.w && aabb.x < this.x + this.w) { //check for horizontal overlap
+            if (this.y < aabb.y + aabb.h && aabb.y < this.y + this.h) { //check for vertical overlap
                 return true
             }
         }
@@ -61,8 +69,8 @@ class region {
         return false
     }
 
-    draw() {
-        stroke('red')
+    draw(color) {
+        stroke(color)
         noFill()
         rect(this.x, this.y, this.w, this.h)
     }
@@ -85,13 +93,14 @@ class QTree {
         }
 
         //if we can add a point to the current cell, do so
-        if (this.points.length < this.tolerance) {
+        if (this.upLeft == null && this.points.length < this.tolerance) {
             this.points.push(point)
             return point
-        } else { //else we check to see if the current node has children
-            if (this.upLeft == null) { 
-                this.subdivide(this.points) //if not, subdivide first
-            } 
+        } else { //else we subdivide and continue on
+            if (this.upLeft == null) {
+                this.subdivide(this.points)
+            }
+
             this.upLeft.insert(point)
             this.upRight.insert(point)
             this.botLeft.insert(point)
@@ -108,46 +117,38 @@ class QTree {
         this.botRight = new QTree(this.boundary.cellBR(), this.tolerance)
 
         point_list.forEach((point) => { //distribute points from parent cell to children
-            if (this.upLeft.boundary.containsPoint(point)) {
-                this.upLeft.points.push(point)
-            } else if (this.upRight.boundary.containsPoint(point)) {
-                this.upRight.points.push(point)
-            } else if (this.botLeft.boundary.containsPoint(point)) {
-                this.botLeft.points.push(point)
-            } else {
-                this.botRight.points.push(point)
-            }
+            this.upLeft.insert(point)
+            this.upRight.insert(point)
+            this.botLeft.insert(point)
+            this.botRight.insert(point)
         })
 
-        this.points = []
+        this.points = null //clear points from parent
     }
 
 
     queryRegion(area) {
-        let inRegion = []
-        if (!this.boundary.containsRegion(area)) {
-            return inRegion
-        } //termiante if not in region 
+        let temp = []
+        if (!this.boundary.containsAABB(area)) {
+            return temp
+        } //prune irrelevant searches
 
-        this.points.forEach((point) => {
-            if (area.containsPoint(point)) {
-                inRegion.push(point)
-            }
-        }) //push points, should only execute on leaf nodes
+        if (this.upLeft == null) { //skip parent nodes
+            this.points.forEach((point) => {
+                if (area.containsPoint(point)) {
+                    temp.push(point)
+                }
+            }) //push points, only execute on leaf nodes
+            return temp
+        }
 
-        if (this.upLeft == null) {
-            return inRegion
-        } //recurse from any starting node, to leaf nodes 
-
-        inRegion.concat(this.upLeft.queryRegion(area))
-        inRegion.concat(this.upRight.queryRegion(area))
-        inRegion.concat(this.botLeft.queryRegion(area))
-        inRegion.concat(this.botRight.queryRegion(area))
-
-        return inRegion
+        //recurse down relevant search till leaf nodes are hit
+        temp = temp.concat(this.upLeft.queryRegion(area))
+        temp = temp.concat(this.upRight.queryRegion(area))
+        temp = temp.concat(this.botLeft.queryRegion(area))
+        temp = temp.concat(this.botRight.queryRegion(area))
+        return temp
     }
-
-    
 }
 
 
@@ -157,7 +158,7 @@ function showTree(root) {
         return
     } 
 
-    root.boundary.draw()
+    root.boundary.draw('red')
     showTree(root.upLeft)
     showTree(root.upRight)
     showTree(root.botLeft)
