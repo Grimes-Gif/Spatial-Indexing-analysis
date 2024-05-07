@@ -4,12 +4,16 @@ class point {
         this.x = x
         this.y = y
         this.speed = .1
+        let angle = (Math.random() * Math.PI * 2.0) - Math.PI; //compute random angle
+        this.direction = [Math.cos(angle), Math.sin(angle)] //get unit vector
         this.diameter = 10
         this.isSelected = false
     }
 
-    update() {
-
+    update() { 
+        //scale unit vector by speed and add to position
+        this.x += this.speed*this.direction[0]
+        this.y += this.speed*this.direction[1]
     }
 
     draw() {
@@ -21,6 +25,14 @@ class point {
             fill(color('green'))
         }
         circle(this.x, this.y, this.diameter)
+    }
+
+    isColliding(p) {
+        if (this.diameter + p.diameter <= sqrt((this.x - p.x)**2 + (this.y - p.y)**2)) {
+            return true
+        }
+        
+        return false
     }
 }
 
@@ -79,8 +91,8 @@ class AABB {
 //pointer enforced
 class QTree {
 
-    constructor(boundary, tolerance) {
-        this.boundary = boundary
+    constructor(AABB, tolerance) {
+        this.AABB = AABB
         this.tolerance = tolerance
         this.points = []
     }
@@ -88,7 +100,7 @@ class QTree {
     insert(point) {
         
         //check if point is in bounds of this cell, if not check another cell
-        if (!this.boundary.containsPoint(point)) {
+        if (!this.AABB.containsPoint(point)) {
             return
         }
 
@@ -111,10 +123,10 @@ class QTree {
     }
     
     subdivide(point_list) {
-        this.upLeft = new QTree(this.boundary.cellUL(), this.tolerance)
-        this.upRight = new QTree(this.boundary.cellUR(), this.tolerance)
-        this.botLeft = new QTree(this.boundary.cellBL(), this.tolerance)
-        this.botRight = new QTree(this.boundary.cellBR(), this.tolerance)
+        this.upLeft = new QTree(this.AABB.cellUL(), this.tolerance)
+        this.upRight = new QTree(this.AABB.cellUR(), this.tolerance)
+        this.botLeft = new QTree(this.AABB.cellBL(), this.tolerance)
+        this.botRight = new QTree(this.AABB.cellBR(), this.tolerance)
 
         point_list.forEach((point) => { //distribute points from parent cell to children
             this.upLeft.insert(point)
@@ -129,7 +141,7 @@ class QTree {
 
     queryRegion(area) {
         let temp = []
-        if (!this.boundary.containsAABB(area)) {
+        if (!this.AABB.containsAABB(area)) {
             return temp
         } //prune irrelevant searches
 
@@ -156,9 +168,9 @@ function showTree(root) {
 
     if (root == null) { //base case
         return
-    } 
+    }
 
-    root.boundary.draw('red')
+    root.AABB.draw('red')
     showTree(root.upLeft)
     showTree(root.upRight)
     showTree(root.botLeft)
