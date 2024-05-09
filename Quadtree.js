@@ -1,100 +1,13 @@
-class point {
-
-    constructor(x,y) {
-        this.x = x
-        this.y = y
-        this.speed = .1
-        let angle = (Math.random() * Math.PI * 2.0) - Math.PI; //compute random angle
-        this.direction = [Math.cos(angle), Math.sin(angle)] //get unit vector
-        this.diameter = 10
-        this.isSelected = false
-    }
-
-    update() { 
-        //scale unit vector by speed and add to position
-        this.x += this.speed*this.direction[0]
-        this.y += this.speed*this.direction[1]
-    }
-
-    draw() {
-        if (this.isSelected) {
-            stroke('blue')
-            fill(color('blue'))
-        } else {
-            stroke('green')
-            fill(color('green'))
-        }
-        circle(this.x, this.y, this.diameter)
-    }
-
-    isColliding(p) {
-        if (this.diameter + p.diameter <= sqrt((this.x - p.x)**2 + (this.y - p.y)**2)) {
-            return true
-        }
-        
-        return false
-    }
-}
-
-
-class AABB {
-    constructor(x,y,w,h) {
-        this.x = x
-        this.y = y
-        this.w = w
-        this.h = h
-    }
-
-    cellUL() {
-        return new AABB(this.x, this.y, this.w/2, this.h/2)
-    }
-
-    cellUR() {
-        return new AABB(this.x + this.w/2, this.y, this.w/2, this.h/2)
-    }
-
-    cellBL() {
-        return new AABB(this.x, this.y + this.h/2, this.w/2, this.h/2)
-    }
-
-    cellBR() {
-        return new AABB(this.x + this.w/2, this.y + this.h/2, 
-            this.w/2, this.h/2)
-    }
-
-    containsPoint(point) {
-        if (point.x > this.x && point.x < this.x + this.w) {
-            if (point.y > this.y && point.y < this.y + this.h) {
-                return true
-            }
-        }
-        return false
-    }
-
-    containsAABB(aabb) {
-        if (this.x < aabb.x + aabb.w && aabb.x < this.x + this.w) { //check for horizontal overlap
-            if (this.y < aabb.y + aabb.h && aabb.y < this.y + this.h) { //check for vertical overlap
-                return true
-            }
-        }
-
-        return false
-    }
-
-    draw(color) {
-        stroke(color)
-        noFill()
-        rect(this.x, this.y, this.w, this.h)
-    }
-}
+//TODO: must make dynamic, requires necessary sparsity 
 
 //pointer enforced
 class QTree {
 
-    constructor(AABB, tolerance) {
+    constructor(AABB, tolerance, max_depth) {
         this.AABB = AABB
         this.tolerance = tolerance
         this.points = []
+        this.max_depth = max_depth
     }
 
     insert(point) {
@@ -161,6 +74,15 @@ class QTree {
         temp = temp.concat(this.botRight.queryRegion(area))
         return temp
     }
+
+    update() {
+        //check to see if points are still in its nodes
+    }
+
+    remove() {
+        //need to remove nodes when it becomes empty
+    }
+
 }
 
 
