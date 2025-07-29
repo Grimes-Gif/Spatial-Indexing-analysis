@@ -11,9 +11,9 @@ class QTree {
     }
 
     insert(point) {
-        
+        let split = false
         //check if point is in bounds of this cell, if not check another cell
-        if (!this.AABB.containsPoint(point)) {
+        if (!this.AABB.containsPoint(point.pos.x, point.pos.y)) {
             return
         }
 
@@ -24,6 +24,7 @@ class QTree {
         } else { //else we subdivide and continue on
             if (this.upLeft == null) {
                 this.subdivide(this.points)
+                split = true
             }
 
             this.upLeft.insert(point)
@@ -60,7 +61,7 @@ class QTree {
 
         if (this.upLeft == null) { //skip parent nodes
             this.points.forEach((point) => {
-                if (area.containsPoint(point)) {
+                if (area.containsPoint(point.pos.x, point.pos.y)) {
                     temp.push(point)
                 }
             }) //push points, only execute on leaf nodes
@@ -82,20 +83,17 @@ class QTree {
     remove() {
         //need to remove nodes when it becomes empty
     }
-
 }
 
 
 function showTree(root) {
-
     if (root == null) { //base case
         return
     }
-
     root.AABB.draw('red')
     showTree(root.upLeft)
     showTree(root.upRight)
     showTree(root.botLeft)
     showTree(root.botRight)
-
 }
+

@@ -82,9 +82,9 @@ class AABB {
             this.w/2, this.h/2)
     }
 
-    containsPoint(point) {
-        if (point.pos.x > this.x && point.pos.x < this.x + this.w) {
-            if (point.pos.y > this.y && point.pos.y < this.y + this.h) {
+    containsPoint(x, y) {
+        if (x > this.x && x < this.x + this.w) { 
+            if (y > this.y && y < this.y + this.h) {
                 return true
             }
         }
@@ -92,8 +92,8 @@ class AABB {
     }
 
     containsAABB(aabb) {
-        if (this.x < aabb.x + aabb.w && aabb.x < this.x + this.w) { //check for horizontal overlap
-            if (this.y < aabb.y + aabb.h && aabb.y < this.y + this.h) { //check for vertical overlap
+        if (this.x < aabb.x + aabb.w && aabb.x < this.x + this.w) { 
+            if (this.y < aabb.y + aabb.h && aabb.y < this.y + this.h) { 
                 return true
             }
         }
@@ -101,9 +101,16 @@ class AABB {
         return false
     }
 
-    draw(color) {
+    draw(color, fill_col, weight) {
         stroke(color)
-        noFill()
+        if (fill_col != null) {
+            fill(fill_col)
+        } else {
+            noFill()
+        }
+        if (weight != null) {
+            strokeWeight(weight)
+        }
         rect(this.x, this.y, this.w, this.h)
     }
 }
